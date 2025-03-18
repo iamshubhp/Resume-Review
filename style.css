@@ -1,0 +1,222 @@
+/* Modern dark theme with vibrant accents inspired by Streamly */
+[data-testid="stAppViewContainer"] {
+  background: linear-gradient(to right, #0f0c29, #1e1a45);
+  color: #f0f0f0;
+}
+
+/* Glowing header effect */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 30px;
+  padding: 20px;
+  background: rgba(20, 18, 50, 0.7);
+  border-radius: 12px;
+  box-shadow: 0 0 20px rgba(255, 63, 95, 0.3);
+  border-left: 3px solid #ff3f5f;
+}
+
+.header-text {
+  color: #ff3f5f;
+  font-size: 32px;
+  font-weight: bold;
+  text-shadow: 0 0 10px rgba(255, 63, 95, 0.5);
+}
+
+.header-icon {
+  color: #ff3f5f;
+  font-size: 34px;
+  filter: drop-shadow(0 0 8px rgba(255, 63, 95, 0.6));
+}
+
+/* Card styling with sleek borders and glow effects */
+.card {
+  background: rgba(20, 18, 50, 0.7);
+  border-radius: 12px;
+  padding: 25px;
+  margin-bottom: 24px;
+  border: 1px solid rgba(255, 63, 95, 0.3);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  box-shadow: 0 6px 25px rgba(255, 63, 95, 0.2);
+  transform: translateY(-2px);
+}
+
+.card-title {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 18px;
+  color: #ff3f5f;
+}
+
+/* Step indicators */
+.step {
+  color: #ff3f5f;
+  font-size: 18px;
+  font-weight: 500;
+  margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+}
+
+.step:before {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background-color: #ff3f5f;
+  border-radius: 50%;
+  margin-right: 10px;
+  box-shadow: 0 0 8px #ff3f5f;
+}
+
+/* Modern buttons */
+.stButton > button {
+  background: linear-gradient(135deg, #ff3f5f 0%, #ff5f8f 100%);
+  color: white;
+  border-radius: 8px;
+  padding: 12px 20px;
+  border: none;
+  font-weight: 500;
+  transition: all 0.3s;
+  box-shadow: 0 4px 10px rgba(255, 63, 95, 0.3);
+}
+
+.stButton > button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(255, 63, 95, 0.4);
+  background: linear-gradient(135deg, #ff5f8f 0%, #ff3f5f 100%);
+}
+
+/* Input fields */
+.stTextArea textarea,
+.stTextInput input {
+  background-color: rgba(30, 28, 70, 0.7);
+  color: #f0f0f0;
+  border: 1px solid rgba(255, 63, 95, 0.3);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.stTextArea textarea:focus,
+.stTextInput input:focus {
+  border-color: #ff3f5f;
+  box-shadow: 0 0 0 1px #ff3f5f;
+}
+
+/* File uploader */
+div[data-baseweb="file-uploader"] {
+  background-color: rgba(30, 28, 70, 0.7);
+  border: 2px dashed rgba(255, 63, 95, 0.5);
+  border-radius: 10px;
+  transition: all 0.3s;
+}
+
+div[data-baseweb="file-uploader"]:hover {
+  border-color: #ff3f5f;
+}
+
+/* Success message */
+.success-msg {
+  color: #4eff91;
+  padding: 12px;
+  background-color: rgba(78, 255, 145, 0.1);
+  border-radius: 8px;
+  border-left: 3px solid #4eff91;
+  display: flex;
+  align-items: center;
+  margin: 15px 0;
+}
+
+.success-msg:before {
+  content: "✓";
+  font-size: 18px;
+  margin-right: 10px;
+  background: rgba(78, 255, 145, 0.2);
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Results section */
+.results {
+  background: rgba(20, 18, 50, 0.7);
+  border-radius: 12px;
+  padding: 25px;
+  margin-top: 25px;
+  border-left: 3px solid #ff3f5f;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Fixes for dark mode */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+li {
+  color: #f0f0f0 !important;
+}
+
+.stSpinner > div > div > div {
+  border-top-color: #ff3f5f !important;
+}
+
+/* Warning message */
+.stAlert {
+  background-color: rgba(255, 152, 0, 0.1) !important;
+  color: #ffab40 !important;
+  border-radius: 8px !important;
+  border-left: 3px solid #ffab40 !important;
+}
+
+/* Footer enhancements */
+.footer {
+  text-align: center;
+  padding: 15px;
+  opacity: 0.8;
+  font-size: 14px;
+  color: #bbb;
+  margin-top: 40px;
+  border-top: 1px solid rgba(255, 63, 95, 0.2);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(20, 18, 50, 0.7);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 63, 95, 0.5);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 63, 95, 0.8);
+}
