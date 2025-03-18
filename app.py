@@ -1,15 +1,16 @@
 from PIL import Image
-import google.generativeai as genai
+import openai
 import pdf2image
 import io
 import os
 import streamlit as st
 import base64
 from dotenv import load_dotenv
+import PyPDF2
 
 load_dotenv()
 
-genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
 # Page configuration
 st.set_page_config(
@@ -19,7 +20,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Custom CSS directly in the app (no file import needed)
+# Custom CSS
 st.markdown("""
 <style>
     /* Modern dark theme with vibrant accents inspired by Streamly */
@@ -287,35 +288,50 @@ Format the response with clear sections, bullet points for readability, and high
 # Core functions
 
 
-def get_gemini_response(input, pdf_content, prompt):
-    model = genai.GenerativeModel('gemini-1.5-flash')
-    response = model.generate_content([input, pdf_content[0], prompt])
-    return response.text
+def extract_text_from_pdf(uploaded_file):
+    """Extract text from PDF using PyPDF2"""
+    try:
+        # Create a PDF reader object
+        pdf_reader = PyPDF2.PdfReader(uploaded_file)
+
+        # Extract text from all pages
+        text = ""
+        for page_num in range(len(pdf_reader.pages)):
+            text += pdf_reader.pages[page_num].extract_text()
+
+        return text
+    except Exception as e:
+        st.error(f"Error extracting text from PDF: {e}")
+        return "Error extracting text from PDF"
 
 
-def input_pdf_setup(uploaded_file):
-    if uploaded_file is not None:
-        images = pdf2image.convert_from_bytes(uploaded_file.read())
-        first_page = images[0]
-
-        img_byte_arr = io.BytesIO()
-        first_page.save(img_byte_arr, format='JPEG')
-        img_byte_arr = img_byte_arr.getvalue()
-
-        return [{
-            "mime_type": "image/jpeg",
-            "data": base64.b64encode(img_byte_arr).decode()
-        }]
-    raise FileNotFoundError("No file uploaded")
+def get_openai_response(prompt, resume_text, job_description):
+    """Generate response from OpenAI based on the resume and job description"""
+    try:
+        response = openai.chat.completions.create(
+            model="gpt-4-turbo",  # You can also use "gpt-3.5-turbo" for a less expensive option
+            messages=[
+                {"role": "system", "content": prompt},
+                {"role": "user", "content": f"Job Description:\n{job_description}\n\nResume Content:\n{resume_text}"}
+            ]
+        )
+        return response.choices[0].message.content
+    except Exception as e:
+        st.error(f"Error generating analysis: {e}")
+        return f"Error generating analysis: {str(e)}"
 
 
 # Handle interactions
 if analysis_btn:
     if uploaded_file and input_text:
         with st.spinner("📊 Analyzing your resume against the job description..."):
-            pdf_content = input_pdf_setup(uploaded_file)
-            response = get_gemini_response(
-                input_prompt1, pdf_content, input_text)
+            # Reset file pointer and extract text
+            uploaded_file.seek(0)
+            resume_text = extract_text_from_pdf(uploaded_file)
+
+            # Get analysis from OpenAI
+            response = get_openai_response(
+                input_prompt1, resume_text, input_text)
 
             st.markdown('<div class="results">', unsafe_allow_html=True)
             st.subheader("📋 Analysis Results")
@@ -336,9 +352,13 @@ if analysis_btn:
 if match_btn:
     if uploaded_file and input_text:
         with st.spinner("🔍 Calculating match percentage..."):
-            pdf_content = input_pdf_setup(uploaded_file)
-            response = get_gemini_response(
-                input_prompt3, pdf_content, input_text)
+            # Reset file pointer and extract text
+            uploaded_file.seek(0)
+            resume_text = extract_text_from_pdf(uploaded_file)
+
+            # Get match analysis from OpenAI
+            response = get_openai_response(
+                input_prompt3, resume_text, input_text)
 
             st.markdown('<div class="results">', unsafe_allow_html=True)
             st.subheader("🎯 Match Results")
@@ -360,7 +380,7 @@ if match_btn:
 st.markdown(
     """
     <div class="footer">
-    <div style="margin-bottom: 10px;">Resume Analyzer AI | Made by Shubh Patel | Powered By Gemini</div>
+    <div style="margin-bottom: 10px;">Resume Analyzer AI | Made by Shubh Patel | Powered By OpenAI</div>
     <div style="font-size: 12px;">Analyze your resume against job descriptions and get AI-powered feedback</div>
     </div>
     """,

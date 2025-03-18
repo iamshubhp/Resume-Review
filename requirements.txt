@@ -4,3 +4,7 @@ google.generativeai
 python-dotenv
 pdf2image
 Pillow
+streamlit-authenticator
+pymongo 
+bcrypt
+openai
