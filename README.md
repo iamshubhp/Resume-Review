@@ -80,4 +80,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - Built with Streamlit and OPENAI
 - I got inspired to build this web app by the challenges of modern job applications
 
-## Contributions are Excepted thankyou!
+## Contributions are Accepted thankyou!
