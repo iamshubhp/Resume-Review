@@ -22,7 +22,7 @@ A web application that analyzes resumes against job descriptions using Google's 
 ## Technologies Used
 
 - Streamlit for the web interface
-- Google's Generative AI (Gemini) for analysis
+- OpenAI gpt-4-turbo for analysis
 - PDF2Image for PDF processing
 - Custom CSS for enhanced UI
 
@@ -30,7 +30,7 @@ A web application that analyzes resumes against job descriptions using Google's 
 
 ### Prerequisites
 - Python 3.10
-- Google Gemini API key
+- OPENAI API Key
 
 ### Local Development
 1. Clone the repository:
@@ -46,7 +46,7 @@ A web application that analyzes resumes against job descriptions using Google's 
 
 3. Create a `.env` file in the project root:
    ```
-   GOOGLE_API_KEY=your_gemini_api_key_here
+   OPENAI_API_KEY=your_gemini_api_key_here
    ```
 
 4. Run the application:
@@ -60,7 +60,7 @@ This app can be deployed on Railway, Streamlit Cloud, or other Python-supporting
 
 For Railway deployment:
 1. Create a Procfile with: `web: streamlit run app.py`
-2. Set up your GOOGLE_API_KEY in Railway's environment variables
+2. Set up your OPENAI_API_KEY in Railway's environment variables
 3. Deploy from your GitHub repository
 
 ## Future Enhancements
@@ -77,7 +77,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## Acknowledgments
 
-- Built with Streamlit and Gemini AI
+- Built with Streamlit and OPENAI
 - I got inspired to build this web app by the challenges of modern job applications
 
 ## Contributions are Excepted thankyou!
