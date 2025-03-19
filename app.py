@@ -309,7 +309,7 @@ def get_openai_response(prompt, resume_text, job_description):
     """Generate response from OpenAI based on the resume and job description"""
     try:
         response = openai.chat.completions.create(
-            model="gpt-4-turbo",  # You can also use "gpt-3.5-turbo" for a less expensive option
+            model="gpt-4",  # You can also use "gpt-3.5-turbo" for a less expensive option
             messages=[
                 {"role": "system", "content": prompt},
                 {"role": "user", "content": f"Job Description:\n{job_description}\n\nResume Content:\n{resume_text}"}
