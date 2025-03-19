@@ -26,8 +26,8 @@ users_collection = db["users"]
 
 # Page configuration
 st.set_page_config(
-    page_title="Resume Analyzer AI",
-    page_icon="📑",
+    page_title="ResumeMatch AI",
+    page_icon="🤖",
     layout="centered",
     initial_sidebar_state="collapsed"
 )
@@ -220,7 +220,7 @@ def fetch_users():
         credentials["usernames"][user["username"]] = {
             "name": user["username"],
             "password": user["hashed_password"].decode('utf-8'),
-            "email": user.get("email", "")  
+            "email": user.get("email", "")
         }
     return credentials
 
@@ -268,7 +268,7 @@ if st.session_state["authentication_status"] is None or st.session_state["authen
     elif mode == "Register":
         st.subheader("Register")
         new_username = st.text_input("New Username")
-        new_email = st.text_input("Email")  # New email field
+        new_email = st.text_input("Email")
         new_password = st.text_input("New Password", type="password")
         confirm_password = st.text_input("Confirm Password", type="password")
         if st.button("Register"):
@@ -276,14 +276,14 @@ if st.session_state["authentication_status"] is None or st.session_state["authen
                 st.error("Passwords do not match!")
             elif users_collection.find_one({"username": new_username}):
                 st.error("Username already exists!")
-            elif not is_valid_email(new_email):  # Validate email
+            elif not is_valid_email(new_email):
                 st.error("Please enter a valid email address!")
             elif new_username and new_password and new_email:
                 hashed_password = hash_password(new_password)
                 users_collection.insert_one({
                     "username": new_username,
                     "hashed_password": hashed_password,
-                    "email": new_email  # Store email in MongoDB
+                    "email": new_email
                 })
                 st.success("Registration successful! Please log in.")
                 st.rerun()
@@ -315,7 +315,7 @@ else:
     st.markdown('<div class="step">Upload Your Resume</div>',
                 unsafe_allow_html=True)
     uploaded_file = st.file_uploader(
-        "Drop your PDF resume here",
+        "Drop your resume PDF here",
         type=["pdf"],
         help="We only support PDF format at the moment"
     )
@@ -462,7 +462,7 @@ else:
     st.markdown(
         """
         <div class="footer">
-        <div style="margin-bottom: 10px;">Resume Analyzer AI | Made by Shubh Patel | Powered By OpenAI</div>
+        <div style="margin-bottom: 10px;">ResumeMatch AI | Made by Shubh Patel | Powered By OpenAI</div>
         <div style="font-size: 12px;">Analyze your resume against job descriptions and get AI-powered feedback</div>
         </div>
         """,
