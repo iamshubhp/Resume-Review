@@ -7,10 +7,22 @@ import streamlit as st
 import base64
 from dotenv import load_dotenv
 import PyPDF2
+import pymongo
+import bcrypt
+import streamlit_authenticator as stauth
 
+# Load environment variables
 load_dotenv()
 
+# OpenAI API key
 openai.api_key = os.getenv("OPENAI_API_KEY")
+
+# MongoDB connection
+mongo_uri = os.getenv("MONGODB_URI")
+client = pymongo.MongoClient(mongo_uri)
+# Replace with your database name if different
+db = client["resume_analyzer_db"]
+users_collection = db["users"]
 
 # Page configuration
 st.set_page_config(
@@ -178,7 +190,43 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Modern header with icon
+# Function to hash passwords
+
+
+def hash_password(password):
+    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+
+# Function to verify passwords
+
+
+def verify_password(password, hashed_password):
+    return bcrypt.checkpw(password.encode('utf-8'), hashed_password)
+
+# Function to fetch users from MongoDB for streamlit-authenticator
+
+
+def fetch_users():
+    users = users_collection.find()
+    credentials = {"usernames": {}}
+    for user in users:
+        credentials["usernames"][user["username"]] = {
+            "name": user["username"],
+            # Convert bytes to string
+            "password": user["hashed_password"].decode('utf-8')
+        }
+    return credentials
+
+
+# Initialize streamlit-authenticator
+credentials = fetch_users()
+authenticator = stauth.Authenticate(
+    credentials,
+    "resume_analyzer",  # Cookie name
+    "random_key",       # Cookie key (can be any string)
+    cookie_expiry_days=30
+)
+
+# Header
 st.markdown(
     '<div class="header">'
     '<div class="header-icon">📑</div>'
@@ -187,202 +235,232 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# App introduction
-st.markdown(
-    """
-    <div style="background: rgba(20, 18, 50, 0.7); padding: 15px; border-radius: 8px; margin-bottom: 25px; 
-    border-left: 3px solid #4e8cff;">
-    Get professional feedback on your resume based on job descriptions. Our AI will analyze your resume and 
-    provide insights to help you improve your job application.
-    </div>
-    """,
-    unsafe_allow_html=True
-)
+# Session state for authentication
+if "authentication_status" not in st.session_state:
+    st.session_state["authentication_status"] = None
 
-# Step 1: Upload Resume
-st.markdown('<div class="card">', unsafe_allow_html=True)
-st.markdown('<div class="step">Upload Your Resume</div>',
-            unsafe_allow_html=True)
-uploaded_file = st.file_uploader(
-    "Drop your PDF resume here",
-    type=["pdf"],
-    help="We only support PDF format at the moment"
-)
+# Show login/register forms only if not authenticated
+if st.session_state["authentication_status"] is None or st.session_state["authentication_status"] is False:
+    mode = st.radio("Choose mode:", ("Login", "Register"))
 
-if uploaded_file is not None:
+    if mode == "Login":
+        st.subheader("Login")
+        username = st.text_input("Username")
+        password = st.text_input("Password", type="password")
+        if st.button("Login"):
+            user = users_collection.find_one({"username": username})
+            if user and verify_password(password, user["hashed_password"]):
+                st.session_state["authentication_status"] = True
+                st.session_state["username"] = username
+                st.session_state["name"] = username
+                st.success("Logged in successfully!")
+                st.rerun()
+            else:
+                st.error("Username/password is incorrect")
+    elif mode == "Register":
+        st.subheader("Register")
+        new_username = st.text_input("New Username")
+        new_password = st.text_input("New Password", type="password")
+        confirm_password = st.text_input("Confirm Password", type="password")
+        if st.button("Register"):
+            if new_password != confirm_password:
+                st.error("Passwords do not match!")
+            elif users_collection.find_one({"username": new_username}):
+                st.error("Username already exists!")
+            elif new_username and new_password:
+                hashed_password = hash_password(new_password)
+                users_collection.insert_one(
+                    {"username": new_username, "hashed_password": hashed_password})
+                st.success("Registration successful! Please log in.")
+                st.rerun()
+            else:
+                st.error("Please fill in all fields!")
+else:
+    # Show app content only if authenticated
+    # Logout button
+    if st.sidebar.button("Logout"):
+        st.session_state["authentication_status"] = None
+        st.session_state["username"] = None
+        st.session_state["name"] = None
+        st.rerun()
+
+    # App introduction
     st.markdown(
-        '<div class="success-msg">Resume uploaded successfully</div>',
+        """
+        <div style="background: rgba(20, 18, 50, 0.7); padding: 15px; border-radius: 8px; margin-bottom: 25px; 
+        border-left: 3px solid #4e8cff;">
+        Get professional feedback on your resume based on job descriptions. Our AI will analyze your resume and 
+        provide insights to help you improve your job application.
+        </div>
+        """,
         unsafe_allow_html=True
     )
-    try:
-        # Preview thumbnail of first page
-        images = pdf2image.convert_from_bytes(uploaded_file.read())
-        st.image(images[0], width=200, caption="Resume Preview")
-        uploaded_file.seek(0)  # Reset file pointer after reading
-    except Exception:
-        st.warning("Unable to generate preview, but your file was uploaded.")
-st.markdown('</div>', unsafe_allow_html=True)
 
-# Step 2: Enter Job Description
-st.markdown('<div class="card">', unsafe_allow_html=True)
-st.markdown('<div class="step">Enter Job Description</div>',
-            unsafe_allow_html=True)
-input_text = st.text_area(
-    "Paste the job description here",
-    height=150,
-    help="For best results, include the full job description with requirements and qualifications"
-)
-st.markdown('</div>', unsafe_allow_html=True)
+    # Step 1: Upload Resume
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+    st.markdown('<div class="step">Upload Your Resume</div>',
+                unsafe_allow_html=True)
+    uploaded_file = st.file_uploader(
+        "Drop your PDF resume here",
+        type=["pdf"],
+        help="We only support PDF format at the moment"
+    )
 
-# Step 3: Choose Analysis Type
-st.markdown('<div class="card">', unsafe_allow_html=True)
-st.markdown('<div class="step">Choose Analysis Type</div>',
-            unsafe_allow_html=True)
-
-# Improved button layout with icons
-col1, col2 = st.columns(2)
-with col1:
-    analysis_btn = st.button("✓ Analyze Resume", use_container_width=True)
-with col2:
-    match_btn = st.button("% Get Match Score", use_container_width=True)
-
-# Adding simple help text
-st.markdown(
-    """
-    <div style="font-size: 14px; opacity: 0.7; margin-top: 10px;">
-    <strong>✓ Analyze Resume</strong>: Get detailed feedback on your resume's strengths and weaknesses<br>
-    <strong>% Get Match Score</strong>: Calculate how well your resume matches the job description
-    </div>
-    """,
-    unsafe_allow_html=True
-)
-st.markdown('</div>', unsafe_allow_html=True)
-
-# Prompt templates
-input_prompt1 = """
-You are an experienced Technical Human Resource Manager with 15+ years of expertise in talent acquisition.
-Your task is to provide a comprehensive review of the candidate's resume against the job description. Focus on:
-
-1. Overall match evaluation (high/medium/low fit)
-2. Key strengths that make the candidate competitive
-3. Notable gaps or areas for improvement
-4. Specific recommendations to better align the resume with the role
-5. Formatting and presentation feedback
-
-Be constructive, specific, and actionable in your feedback.
-"""
-
-input_prompt3 = """
-You are a sophisticated ATS (Applicant Tracking System) scanner with deep understanding of hiring criteria.
-Provide a detailed match analysis including:
-
-1. Overall match percentage (quantified from 0-100%)
-2. Top 5 matching keywords/skills found in both resume and job description
-3. Top 5 missing or underemphasized keywords/skills from the job description
-4. Specific sections to improve for better ATS optimization
-5. 2-3 concrete suggestions for enhancing the resume's match potential
-
-Format the response with clear sections, bullet points for readability, and highlight critical recommendations.
-"""
-
-# Core functions
-
-
-def extract_text_from_pdf(uploaded_file):
-    """Extract text from PDF using PyPDF2"""
-    try:
-        # Create a PDF reader object
-        pdf_reader = PyPDF2.PdfReader(uploaded_file)
-
-        # Extract text from all pages
-        text = ""
-        for page_num in range(len(pdf_reader.pages)):
-            text += pdf_reader.pages[page_num].extract_text()
-
-        return text
-    except Exception as e:
-        st.error(f"Error extracting text from PDF: {e}")
-        return "Error extracting text from PDF"
-
-
-def get_openai_response(prompt, resume_text, job_description):
-    """Generate response from OpenAI based on the resume and job description"""
-    try:
-        response = openai.chat.completions.create(
-            model="gpt-4-turbo",  # You can also use "gpt-3.5-turbo" for a less expensive option
-            messages=[
-                {"role": "system", "content": prompt},
-                {"role": "user", "content": f"Job Description:\n{job_description}\n\nResume Content:\n{resume_text}"}
-            ]
+    if uploaded_file is not None:
+        st.markdown(
+            '<div class="success-msg">Resume uploaded successfully</div>',
+            unsafe_allow_html=True
         )
-        return response.choices[0].message.content
-    except Exception as e:
-        st.error(f"Error generating analysis: {e}")
-        return f"Error generating analysis: {str(e)}"
-
-
-# Handle interactions
-if analysis_btn:
-    if uploaded_file and input_text:
-        with st.spinner("📊 Analyzing your resume against the job description..."):
-            # Reset file pointer and extract text
+        try:
+            images = pdf2image.convert_from_bytes(uploaded_file.read())
+            st.image(images[0], width=200, caption="Resume Preview")
             uploaded_file.seek(0)
-            resume_text = extract_text_from_pdf(uploaded_file)
+        except Exception:
+            st.warning(
+                "Unable to generate preview, but your file was uploaded.")
+    st.markdown('</div>', unsafe_allow_html=True)
 
-            # Get analysis from OpenAI
-            response = get_openai_response(
-                input_prompt1, resume_text, input_text)
+    # Step 2: Enter Job Description
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+    st.markdown('<div class="step">Enter Job Description</div>',
+                unsafe_allow_html=True)
+    input_text = st.text_area(
+        "Paste the job description here",
+        height=150,
+        help="For best results, include the full job description with requirements and qualifications"
+    )
+    st.markdown('</div>', unsafe_allow_html=True)
 
-            st.markdown('<div class="results">', unsafe_allow_html=True)
-            st.subheader("📋 Analysis Results")
-            st.write(response)
+    # Step 3: Choose Analysis Type
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+    st.markdown('<div class="step">Choose Analysis Type</div>',
+                unsafe_allow_html=True)
+    col1, col2 = st.columns(2)
+    with col1:
+        analysis_btn = st.button("✓ Analyze Resume", use_container_width=True)
+    with col2:
+        match_btn = st.button("% Get Match Score", use_container_width=True)
 
-            # Download button for analysis
-            st.download_button(
-                label="📥 Download Analysis",
-                data=response,
-                file_name="resume_analysis.txt",
-                mime="text/plain"
-            )
-            st.markdown('</div>', unsafe_allow_html=True)
-    else:
-        st.warning(
-            "⚠️ Please upload your resume and enter a job description first")
+    st.markdown(
+        """
+        <div style="font-size: 14px; opacity: 0.7; margin-top: 10px;">
+        <strong>✓ Analyze Resume</strong>: Get detailed feedback on your resume's strengths and weaknesses<br>
+        <strong>% Get Match Score</strong>: Calculate how well your resume matches the job description
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+    st.markdown('</div>', unsafe_allow_html=True)
 
-if match_btn:
-    if uploaded_file and input_text:
-        with st.spinner("🔍 Calculating match percentage..."):
-            # Reset file pointer and extract text
-            uploaded_file.seek(0)
-            resume_text = extract_text_from_pdf(uploaded_file)
-
-            # Get match analysis from OpenAI
-            response = get_openai_response(
-                input_prompt3, resume_text, input_text)
-
-            st.markdown('<div class="results">', unsafe_allow_html=True)
-            st.subheader("🎯 Match Results")
-            st.write(response)
-
-            # Download button for results
-            st.download_button(
-                label="📥 Download Results",
-                data=response,
-                file_name="resume_match_results.txt",
-                mime="text/plain"
-            )
-            st.markdown('</div>', unsafe_allow_html=True)
-    else:
-        st.warning(
-            "⚠️ Please upload your resume and enter a job description first")
-
-# Enhanced footer
-st.markdown(
+    # Prompt templates
+    input_prompt1 = """
+    You are an experienced Technical Human Resource Manager with 15+ years of expertise in talent acquisition.
+    Your task is to provide a comprehensive review of the candidate's resume against the job description. Focus on:
+    1. Overall match evaluation (high/medium/low fit)
+    2. Key strengths that make the candidate competitive
+    3. Notable gaps or areas for improvement
+    4. Specific recommendations to better align the resume with the role
+    5. Formatting and presentation feedback
+    Be constructive, specific, and actionable in your feedback.
     """
-    <div class="footer">
-    <div style="margin-bottom: 10px;">Resume Analyzer AI | Made by Shubh Patel | Powered By OpenAI</div>
-    <div style="font-size: 12px;">Analyze your resume against job descriptions and get AI-powered feedback</div>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
+
+    input_prompt3 = """
+    You are a sophisticated ATS (Applicant Tracking System) scanner with deep understanding of hiring criteria.
+    Provide a detailed match analysis including:
+    1. Overall match percentage (quantified from 0-100%)
+    2. Top 5 matching keywords/skills found in both resume and job description
+    3. Top 5 missing or underemphasized keywords/skills from the job description
+    4. Specific sections to improve for better ATS optimization
+    5. 2-3 concrete suggestions for enhancing the resume's match potential
+    Format the response with clear sections, bullet points for readability, and highlight critical recommendations.
+    """
+
+    # Core functions
+    def extract_text_from_pdf(uploaded_file):
+        try:
+            pdf_reader = PyPDF2.PdfReader(uploaded_file)
+            text = ""
+            for page_num in range(len(pdf_reader.pages)):
+                text += pdf_reader.pages[page_num].extract_text()
+            return text
+        except Exception as e:
+            st.error(f"Error extracting text from PDF: {e}")
+            return "Error extracting text from PDF"
+
+    def get_openai_response(prompt, resume_text, job_description):
+        try:
+            response = openai.chat.completions.create(
+                model="gpt-4-turbo",
+                messages=[
+                    {"role": "system", "content": prompt},
+                    {"role": "user", "content": f"Job Description:\n{job_description}\n\nResume Content:\n{resume_text}"}
+                ]
+            )
+            return response.choices[0].message.content
+        except Exception as e:
+            st.error(f"Error generating analysis: {e}")
+            return f"Error generating analysis: {str(e)}"
+
+    # Handle interactions
+    if analysis_btn:
+        if uploaded_file and input_text:
+            with st.spinner("📊 Analyzing your resume against the job description..."):
+                uploaded_file.seek(0)
+                resume_text = extract_text_from_pdf(uploaded_file)
+                response = get_openai_response(
+                    input_prompt1, resume_text, input_text)
+                st.markdown('<div class="results">', unsafe_allow_html=True)
+                st.subheader("📋 Analysis Results")
+                st.write(response)
+                st.download_button(
+                    label="📥 Download Analysis",
+                    data=response,
+                    file_name="resume_analysis.txt",
+                    mime="text/plain"
+                )
+                st.markdown('</div>', unsafe_allow_html=True)
+        else:
+            st.warning(
+                "⚠️ Please upload your resume and enter a job description first")
+
+    if match_btn:
+        if uploaded_file and input_text:
+            with st.spinner("🔍 Calculating match percentage..."):
+                uploaded_file.seek(0)
+                resume_text = extract_text_from_pdf(uploaded_file)
+                response = get_openai_response(
+                    input_prompt3, resume_text, input_text)
+                st.markdown('<div class="results">', unsafe_allow_html=True)
+                st.subheader("🎯 Match Results")
+                st.write(response)
+                st.download_button(
+                    label="📥 Download Results",
+                    data=response,
+                    file_name="resume_match_results.txt",
+                    mime="text/plain"
+                )
+                st.markdown('</div>', unsafe_allow_html=True)
+        else:
+            st.warning(
+                "⚠️ Please upload your resume and enter a job description first")
+
+    # Enhanced footer
+    st.markdown(
+        """
+        <div class="footer">
+        <div style="margin-bottom: 10px;">Resume Analyzer AI | Made by Shubh Patel | Powered By OpenAI</div>
+        <div style="font-size: 12px;">Analyze your resume against job descriptions and get AI-powered feedback</div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+# Optional: Script to add initial users (run once, then comment out)
+# """
+# # Add a test user (run this once, then comment out)
+# username = "testuser"
+# password = "testpass123"
+# hashed_password = hash_password(password)
+# users_collection.insert_one({"username": username, "hashed_password": hashed_password})
+# print("Test user added!")
+# """
