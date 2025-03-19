@@ -8,3 +8,4 @@ streamlit-authenticator
 pymongo 
 bcrypt
 openai
+

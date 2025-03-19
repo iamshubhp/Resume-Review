@@ -10,6 +10,7 @@ import PyPDF2
 import pymongo
 import bcrypt
 import streamlit_authenticator as stauth
+import re
 
 # Load environment variables
 load_dotenv()
@@ -20,7 +21,6 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 # MongoDB connection
 mongo_uri = os.getenv("MONGODB_URI")
 client = pymongo.MongoClient(mongo_uri)
-# Replace with your database name if different
 db = client["resume_analyzer_db"]
 users_collection = db["users"]
 
@@ -202,6 +202,14 @@ def hash_password(password):
 def verify_password(password, hashed_password):
     return bcrypt.checkpw(password.encode('utf-8'), hashed_password)
 
+# Function to validate email
+
+
+def is_valid_email(email):
+    # Basic email validation using regex
+    email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    return re.match(email_pattern, email) is not None
+
 # Function to fetch users from MongoDB for streamlit-authenticator
 
 
@@ -211,8 +219,8 @@ def fetch_users():
     for user in users:
         credentials["usernames"][user["username"]] = {
             "name": user["username"],
-            # Convert bytes to string
-            "password": user["hashed_password"].decode('utf-8')
+            "password": user["hashed_password"].decode('utf-8'),
+            "email": user.get("email", "")  
         }
     return credentials
 
@@ -260,6 +268,7 @@ if st.session_state["authentication_status"] is None or st.session_state["authen
     elif mode == "Register":
         st.subheader("Register")
         new_username = st.text_input("New Username")
+        new_email = st.text_input("Email")  # New email field
         new_password = st.text_input("New Password", type="password")
         confirm_password = st.text_input("Confirm Password", type="password")
         if st.button("Register"):
@@ -267,10 +276,15 @@ if st.session_state["authentication_status"] is None or st.session_state["authen
                 st.error("Passwords do not match!")
             elif users_collection.find_one({"username": new_username}):
                 st.error("Username already exists!")
-            elif new_username and new_password:
+            elif not is_valid_email(new_email):  # Validate email
+                st.error("Please enter a valid email address!")
+            elif new_username and new_password and new_email:
                 hashed_password = hash_password(new_password)
-                users_collection.insert_one(
-                    {"username": new_username, "hashed_password": hashed_password})
+                users_collection.insert_one({
+                    "username": new_username,
+                    "hashed_password": hashed_password,
+                    "email": new_email  # Store email in MongoDB
+                })
                 st.success("Registration successful! Please log in.")
                 st.rerun()
             else:
@@ -455,7 +469,7 @@ else:
         unsafe_allow_html=True
     )
 
-
+# Optional: Script to add initial users (run once, then comment out)
 # """
 # # Add a test user (run this once, then comment out)
 # username = "testuser"
