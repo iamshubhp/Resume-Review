@@ -221,8 +221,8 @@ def fetch_users():
 credentials = fetch_users()
 authenticator = stauth.Authenticate(
     credentials,
-    "resume_analyzer",  # Cookie name
-    "random_key",       # Cookie key (can be any string)
+    "resume_analyzer",
+    "random_key",
     cookie_expiry_days=30
 )
 
@@ -455,7 +455,7 @@ else:
         unsafe_allow_html=True
     )
 
-# Optional: Script to add initial users (run once, then comment out)
+
 # """
 # # Add a test user (run this once, then comment out)
 # username = "testuser"
