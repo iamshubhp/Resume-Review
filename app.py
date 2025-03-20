@@ -21,7 +21,7 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 # MongoDB connection
 mongo_uri = os.getenv("MONGODB_URI")
 client = pymongo.MongoClient(mongo_uri)
-db = client["resume_analyzer_db"]
+db = client["ResumeMatch AI"]
 users_collection = db["users"]
 
 # Page configuration
@@ -238,7 +238,7 @@ authenticator = stauth.Authenticate(
 st.markdown(
     '<div class="header">'
     '<div class="header-icon">📑</div>'
-    '<span class="header-text">Resume Analyzer AI</span>'
+    '<span class="header-text">ResumeMatch AI</span>'
     '</div>',
     unsafe_allow_html=True
 )

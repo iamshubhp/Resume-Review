@@ -1,4 +1,4 @@
-# Resume Analyzer AI
+# ResumeMatch AI
 
 A web application that analyzes resumes against job descriptions using Google's Gemini AI to provide detailed feedback and match scores.
 
@@ -29,22 +29,27 @@ A web application that analyzes resumes against job descriptions using Google's 
 ## Installation & Setup
 
 ### Prerequisites
+
 - Python 3.10
 - OPENAI API Key
 
 ### Local Development
+
 1. Clone the repository:
+
    ```
    git clone https://github.com/iamshubhp/Resume-Review.git
    cd Resume-Review
    ```
 
 2. Install dependencies:
+
    ```
    pip install -r requirements.txt
    ```
 
 3. Create a `.env` file in the project root:
+
    ```
    OPENAI_API_KEY=your_gemini_api_key_here
    ```
@@ -59,6 +64,7 @@ A web application that analyzes resumes against job descriptions using Google's 
 This app can be deployed on Railway, Streamlit Cloud, or other Python-supporting platforms.
 
 For Railway deployment:
+
 1. Create a Procfile with: `web: streamlit run app.py`
 2. Set up your OPENAI_API_KEY in Railway's environment variables
 3. Deploy from your GitHub repository
